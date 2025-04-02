@@ -1,7 +1,3 @@
-
-REESCOLHER O ALGORITMO PARA CADA DATASET DPS DE TRATAR... OLHAR REVISAO NO NOTION
-1- TESTAR TODOS HIERARQUICOS -> VER QUAL FICA DIVIDIDINHO BONITINHO PARA AS DUAS BASES
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,6 +8,9 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.datasets import load_iris
 import kagglehub
+import sys
+
+sys.setrecursionlimit(10000)
 
 # -----------------------
 # 1) CARREGANDO OS DADOS
@@ -92,7 +91,7 @@ k_iris = int(input("Escolha K para IRIS: "))
 k_kaggle = int(input("Escolha K para KAGGLE: "))
 
 # --------------------------------------------------------
-# 6) K-MEANS E HIERÁRQUICO (WARD)
+# 6) K-MEANS
 # --------------------------------------------------------
 kmeans_iris = KMeans(n_clusters=k_iris, random_state=42, n_init=10)
 iris_clusters_kmeans = kmeans_iris.fit_predict(iris_scaled)
@@ -103,44 +102,96 @@ kaggle_scaled_clusters_kmeans = kmeans_kaggle_scaled.fit_predict(kaggle_scaled)
 kmeans_kaggle_transformed = KMeans(n_clusters=k_kaggle, random_state=42, n_init=10)
 kaggle_transformed_clusters_kmeans = kmeans_kaggle_transformed.fit_predict(kaggle_transformed)
 
-def hierarchical_clustering(data, title, k, method='ward'):
+# --------------------------------------------------------
+# 7) HIERARQUICO
+# --------------------------------------------------------
+def hierarchical_clustering(data, title, k, method):
     linked = linkage(data, method=method)
-    plt.figure(figsize=(8, 4))
-    dendrogram(linked)
-    plt.title(f"Dendrograma ({method}) - {title}")
-    plt.xlabel('Amostras')
+    plt.figure(figsize=(10, 5))
+    dendrogram(linked,
+               truncate_mode='lastp',  # mostra só os últimos clusters
+               p=50,
+               show_leaf_counts=True,
+               leaf_rotation=90,
+               leaf_font_size=10,
+               show_contracted=True)
+    plt.title(f"Dendrograma Resumido ({method}) - {title}")
+    plt.xlabel('Clusters')
     plt.ylabel('Distância')
+    plt.tight_layout()
     plt.show()
     return fcluster(linked, t=k, criterion='maxclust')
 
-iris_clusters_hier = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'ward')
-kaggle_scaled_clusters_hier = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'ward')
-kaggle_transformed_clusters_hier = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle, 'ward')
+# Ward method
+iris_clusters_hier_ward = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'ward')
+kaggle_scaled_clusters_hier_ward = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'ward')
+kaggle_transformed_clusters_hier_ward = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle, 'ward')
 
+# Single method
+iris_clusters_hier_single = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'single')
+kaggle_scaled_clusters_hier_single = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'single')
+kaggle_transformed_clusters_hier_single = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle, 'single')
+
+# Complete method
+iris_clusters_hier_complete = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'complete')
+kaggle_scaled_clusters_hier_complete = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'complete')
+kaggle_transformed_clusters_hier_complete = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle, 'complete')
+
+# Average method
+iris_clusters_hier_average = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'average')
+kaggle_scaled_clusters_hier_average = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'average')
+kaggle_transformed_clusters_hier_average = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle, 'average')
 # --------------------------------------------------------
-# 7) SILHOUETTE SCORE
+# 8) SILHOUETTE SCORE - TODOS OS MÉTODOS
 # --------------------------------------------------------
+
+# ===== IRIS (normalizada) =====
 score_kmeans_iris = silhouette_score(iris_scaled, iris_clusters_kmeans)
-score_hier_iris   = silhouette_score(iris_scaled, iris_clusters_hier)
+score_hier_iris_ward = silhouette_score(iris_scaled, iris_clusters_hier_ward)
+score_hier_iris_single = silhouette_score(iris_scaled, iris_clusters_hier_single)
+score_hier_iris_complete = silhouette_score(iris_scaled, iris_clusters_hier_complete)
+score_hier_iris_average = silhouette_score(iris_scaled, iris_clusters_hier_average)
 
-score_kmeans_kg_scaled = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_kmeans)
-score_hier_kg_scaled   = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier)
+# ===== KAGGLE (apenas normalizada) =====
+score_kmeans_kaggle_scaled = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_kmeans)
+score_hier_kaggle_scaled_ward = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_ward)
+score_hier_kaggle_scaled_single = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_single)
+score_hier_kaggle_scaled_complete = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_complete)
+score_hier_kaggle_scaled_average = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_average)
 
-score_kmeans_kg_transf = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_kmeans)
-score_hier_kg_transf   = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier)
+# ===== KAGGLE (normalizada + PowerTransformer) =====
+score_kmeans_kaggle_transf = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_kmeans)
+score_hier_kaggle_transf_ward = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_ward)
+score_hier_kaggle_transf_single = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_single)
+score_hier_kaggle_transf_complete = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_complete)
+score_hier_kaggle_transf_average = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_average)
+
+# --------------------------------------------------------
+# PRINT DOS RESULTADOS
+# --------------------------------------------------------
 
 print("\n===== COMPARATIVO SILHOUETTE SCORE =====\n")
-print("Base IRIS (apenas normalizada)")
+
+print("📌 Base IRIS (apenas normalizada):")
 print(f"  • K-Means:              {score_kmeans_iris:.4f}")
-print(f"  • Hierárquico (Ward):   {score_hier_iris:.4f}\n")
+print(f"  • Hierárquico (Ward):   {score_hier_iris_ward:.4f}")
+print(f"  • Hierárquico (Single): {score_hier_iris_single:.4f}")
+print(f"  • Hierárquico (Complete): {score_hier_iris_complete:.4f}")
+print(f"  • Hierárquico (Average):  {score_hier_iris_average:.4f}\n")
 
-print("Base KAGGLE (apenas normalizada)")
-print(f"  • K-Means:              {score_kmeans_kg_scaled:.4f}")
-print(f"  • Hierárquico (Ward):   {score_hier_kg_scaled:.4f}\n")
+print("📌 Base KAGGLE (apenas normalizada):")
+print(f"  • K-Means:              {score_kmeans_kaggle_scaled:.4f}")
+print(f"  • Hierárquico (Ward):   {score_hier_kaggle_scaled_ward:.4f}")
+print(f"  • Hierárquico (Single): {score_hier_kaggle_scaled_single:.4f}")
+print(f"  • Hierárquico (Complete): {score_hier_kaggle_scaled_complete:.4f}")
+print(f"  • Hierárquico (Average):  {score_hier_kaggle_scaled_average:.4f}\n")
 
-print("Base KAGGLE (StandardScaler + PowerTransformer)")
-print(f"  • K-Means:              {score_kmeans_kg_transf:.4f}")
-print(f"  • Hierárquico (Ward):   {score_hier_kg_transf:.4f}")
+print("📌 Base KAGGLE (StandardScaler + PowerTransformer):")
+print(f"  • K-Means:              {score_kmeans_kaggle_transf:.4f}")
+print(f"  • Hierárquico (Ward):   {score_hier_kaggle_transf_ward:.4f}")
+print(f"  • Hierárquico (Single): {score_hier_kaggle_transf_single:.4f}")
+print(f"  • Hierárquico (Complete): {score_hier_kaggle_transf_complete:.4f}")
+print(f"  • Hierárquico (Average):  {score_hier_kaggle_transf_average:.4f}")
 
 # --------------------------------------------------------
 # RELATÓRIO FINAL (DETALHES, ESCOLHAS E JUSTIFICATIVAS)
