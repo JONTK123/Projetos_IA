@@ -108,7 +108,7 @@ kaggle_transformed_clusters_kmeans = kmeans_kaggle_transformed.fit_predict(kaggl
 
 # Função de plotagem para Iris com K-Means
 def plot_kmeans_iris(data_scaled, labels, title="K-Means - Iris"):
-    df = pd.DataFrame(data_scaled, columns=["feat1", "feat2", "feat3", "feat4"])
+    df = pd.DataFrame(data_scaled, columns=iris.feature_names)
     df['cluster'] = labels.astype(str)
     sns.pairplot(df, hue='cluster')
     plt.suptitle(title, y=1.02)
@@ -149,7 +149,7 @@ kaggle_clusters_bkm_transf = bisecting_kmeans_kaggle_transf.fit_predict(kaggle_t
 
 # Função de plotagem para Iris com Pairplot
 def plot_bkm_iris(data_scaled, labels, title="Bisecting K-Means - Iris"):
-    df = pd.DataFrame(data_scaled, columns=["feat1", "feat2", "feat3", "feat4"])
+    df = pd.DataFrame(data_scaled, columns=iris.feature_names)
     df['cluster'] = labels.astype(str)
     sns.pairplot(df, hue='cluster')
     plt.suptitle(title, y=1.02)
