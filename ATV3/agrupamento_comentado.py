@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
-from sklearn.cluster import BisectingKMeans
 from sklearn.cluster import KMeans, BisectingKMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler, PowerTransformer
@@ -107,6 +106,26 @@ kaggle_scaled_clusters_kmeans = kmeans_kaggle_scaled.fit_predict(kaggle_scaled)
 kmeans_kaggle_transformed = KMeans(n_clusters=k_kaggle, random_state=42, n_init=10)
 kaggle_transformed_clusters_kmeans = kmeans_kaggle_transformed.fit_predict(kaggle_transformed)
 
+# Função de plotagem para Iris com K-Means
+def plot_kmeans_iris(data_scaled, labels, title="K-Means - Iris"):
+    df = pd.DataFrame(data_scaled, columns=["feat1", "feat2", "feat3", "feat4"])
+    df['cluster'] = labels.astype(str)
+    sns.pairplot(df, hue='cluster')
+    plt.suptitle(title, y=1.02)
+    plt.show()
+
+# Função de plotagem para Kaggle com K-Means
+def plot_kmeans_kaggle(data_scaled, labels, title="K-Means - Kaggle"):
+    df = pd.DataFrame(data_scaled, columns=["budget", "popularity", "revenue", "vote_average", "vote_count"])
+    df['cluster'] = labels.astype(str)
+    sns.pairplot(df, hue='cluster')
+    plt.suptitle(title, y=1.02)
+    plt.show()
+
+# Plotando K-Means
+plot_kmeans_iris(iris_scaled, iris_clusters_kmeans, "K-Means - Iris")
+plot_kmeans_kaggle(kaggle_scaled, kaggle_scaled_clusters_kmeans, "K-Means - Kaggle (Normalizado)")
+plot_kmeans_kaggle(kaggle_transformed, kaggle_transformed_clusters_kmeans, "K-Means - Kaggle (Transformado)")
 
 # --------------------------------------------------------
 # 6.1) BISECTING K-MEANS
