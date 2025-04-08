@@ -105,7 +105,6 @@ kaggle_scaled_clusters_kmeans = kmeans_kaggle_scaled.fit_predict(kaggle_scaled)
 kmeans_kaggle_transformed = KMeans(n_clusters=k_kaggle, random_state=42, n_init=10)
 kaggle_transformed_clusters_kmeans = kmeans_kaggle_transformed.fit_predict(kaggle_transformed)
 
-# Função de plotagem para Iris com K-Means
 def plot_kmeans_iris(data_scaled, labels, title="K-Means - Iris"):
     df = pd.DataFrame(data_scaled, columns=iris.feature_names)
     df['cluster'] = labels.astype(str)
@@ -113,7 +112,6 @@ def plot_kmeans_iris(data_scaled, labels, title="K-Means - Iris"):
     plt.suptitle(title, y=1.02)
     plt.show()
 
-# Função de plotagem para Kaggle com K-Means
 def plot_kmeans_kaggle(data_scaled, labels, title="K-Means - Kaggle"):
     df = pd.DataFrame(data_scaled, columns=["budget", "popularity", "revenue", "vote_average", "vote_count"])
     df['cluster'] = labels.astype(str)
@@ -121,7 +119,6 @@ def plot_kmeans_kaggle(data_scaled, labels, title="K-Means - Kaggle"):
     plt.suptitle(title, y=1.02)
     plt.show()
 
-# Plotando K-Means
 plot_kmeans_iris(iris_scaled, iris_clusters_kmeans, "K-Means - Iris")
 plot_kmeans_kaggle(kaggle_scaled, kaggle_scaled_clusters_kmeans, "K-Means - Kaggle (Normalizado)")
 plot_kmeans_kaggle(kaggle_transformed, kaggle_transformed_clusters_kmeans, "K-Means - Kaggle (Transformado)")
@@ -129,14 +126,6 @@ plot_kmeans_kaggle(kaggle_transformed, kaggle_transformed_clusters_kmeans, "K-Me
 # --------------------------------------------------------
 # 6.1) BISECTING K-MEANS
 # --------------------------------------------------------
-
-# NOTA: Embora o Bisecting K-Means não seja compatível com o método do cotovelo (Elbow Method),
-# ele ainda exige que o número de clusters K seja informado previamente através do parâmetro `n_clusters`.
-# Para manter a coerência na análise comparativa entre os algoritmos,
-# utilizamos o mesmo valor de K que foi determinado via Elbow para o K-Means tradicional.
-# Isso nos permite comparar diretamente os resultados entre os métodos de clusterização.
-
-# Aplicação do Bisecting K-Means em cada base com os Ks definidos
 bisecting_kmeans_iris = BisectingKMeans(n_clusters=k_iris, random_state=42)
 iris_clusters_bkm = bisecting_kmeans_iris.fit_predict(iris_scaled)
 
@@ -146,7 +135,6 @@ kaggle_clusters_bkm_scaled = bisecting_kmeans_kaggle_scaled.fit_predict(kaggle_s
 bisecting_kmeans_kaggle_transf = BisectingKMeans(n_clusters=k_kaggle, random_state=42)
 kaggle_clusters_bkm_transf = bisecting_kmeans_kaggle_transf.fit_predict(kaggle_transformed)
 
-# Função de plotagem para Iris com Pairplot
 def plot_bkm_iris(data_scaled, labels, title="Bisecting K-Means - Iris"):
     df = pd.DataFrame(data_scaled, columns=iris.feature_names)
     df['cluster'] = labels.astype(str)
@@ -154,7 +142,6 @@ def plot_bkm_iris(data_scaled, labels, title="Bisecting K-Means - Iris"):
     plt.suptitle(title, y=1.02)
     plt.show()
 
-# Função de plotagem para Kaggle com Pairplot
 def plot_bkm_kaggle(data_scaled, labels, title="Bisecting K-Means - Kaggle"):
     df = pd.DataFrame(data_scaled, columns=["budget", "popularity", "revenue", "vote_average", "vote_count"])
     df['cluster'] = labels.astype(str)
@@ -162,11 +149,9 @@ def plot_bkm_kaggle(data_scaled, labels, title="Bisecting K-Means - Kaggle"):
     plt.suptitle(title, y=1.02)
     plt.show()
 
-# Gerando os gráficos
 plot_bkm_iris(iris_scaled, iris_clusters_bkm, "Bisecting K-Means - Iris")
 plot_bkm_kaggle(kaggle_scaled, kaggle_clusters_bkm_scaled, "Bisecting K-Means - Kaggle (Normalizado)")
 plot_bkm_kaggle(kaggle_transformed, kaggle_clusters_bkm_transf, "Bisecting K-Means - Kaggle (Transformado)")
-
 
 # --------------------------------------------------------
 # 7) HIERARQUICO
@@ -174,13 +159,25 @@ plot_bkm_kaggle(kaggle_transformed, kaggle_clusters_bkm_transf, "Bisecting K-Mea
 def hierarchical_clustering(data, title, k, method):
     linked = linkage(data, method=method)
     plt.figure(figsize=(10, 5))
-    dendrogram(linked,
-               truncate_mode='lastp',  # mostra só os últimos clusters
-               p=50,
-               show_leaf_counts=True,
-               leaf_rotation=90,
-               leaf_font_size=10,
-               show_contracted=True)
+    if "Iris" in title:
+        dendrogram(linked,
+                   show_leaf_counts=True,
+                   leaf_rotation=90,
+                   leaf_font_size=10,
+                   color_threshold=linked[-(k - 1), 2]) # -> define a altura (distância) no dendrograma onde o corte será feito para colorir os clusters.
+                                                        #    Se muito pequenos, quase 0, nao pinta o grupo, mas ele existe
+                   # color_threshold=0.1) -> Para garantir que mesmo que distanica/altura muito pequenos, iria pintar 4 grupos,  mas ai deixou TUDO
+                   #                         da mesma cor pois a altura minima foi atingida. Mas esta formando 4 grupos
+                   #                         ( single iris nao mostra 4 cores por exemplo )
+    else:
+        dendrogram(linked,
+                   truncate_mode='lastp',
+                   p=50,
+                   show_leaf_counts=True,
+                   leaf_rotation=90,
+                   leaf_font_size=10,
+                   show_contracted=True,
+                   color_threshold=linked[-(k - 1), 2])
     plt.title(f"Dendrograma Resumido ({method}) - {title}")
     plt.xlabel('Clusters')
     plt.ylabel('Distância')
@@ -188,26 +185,22 @@ def hierarchical_clustering(data, title, k, method):
     plt.show()
     return fcluster(linked, t=k, criterion='maxclust')
 
-# Ward method
 iris_clusters_hier_ward = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'ward')
 kaggle_scaled_clusters_hier_ward = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'ward')
 kaggle_transformed_clusters_hier_ward = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle,
                                                                 'ward')
 
-# Single method
 iris_clusters_hier_single = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'single')
 kaggle_scaled_clusters_hier_single = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle, 'single')
 kaggle_transformed_clusters_hier_single = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)", k_kaggle,
                                                                   'single')
 
-# Complete method
 iris_clusters_hier_complete = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'complete')
 kaggle_scaled_clusters_hier_complete = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle,
                                                                'complete')
 kaggle_transformed_clusters_hier_complete = hierarchical_clustering(kaggle_transformed, "Kaggle (Transformado)",
                                                                     k_kaggle, 'complete')
 
-# Average method
 iris_clusters_hier_average = hierarchical_clustering(iris_scaled, "Iris (Normalizado)", k_iris, 'average')
 kaggle_scaled_clusters_hier_average = hierarchical_clustering(kaggle_scaled, "Kaggle (Normalizado)", k_kaggle,
                                                               'average')
@@ -217,8 +210,6 @@ kaggle_transformed_clusters_hier_average = hierarchical_clustering(kaggle_transf
 # --------------------------------------------------------
 # 8) SILHOUETTE SCORE - TODOS OS MÉTODOS (Incluindo BKM)
 # --------------------------------------------------------
-
-# ===== IRIS (apenas normalizada) =====
 score_kmeans_iris          = silhouette_score(iris_scaled, iris_clusters_kmeans)
 score_bkm_iris             = silhouette_score(iris_scaled, iris_clusters_bkm)
 score_hier_iris_ward       = silhouette_score(iris_scaled, iris_clusters_hier_ward)
@@ -226,7 +217,6 @@ score_hier_iris_single     = silhouette_score(iris_scaled, iris_clusters_hier_si
 score_hier_iris_complete   = silhouette_score(iris_scaled, iris_clusters_hier_complete)
 score_hier_iris_average    = silhouette_score(iris_scaled, iris_clusters_hier_average)
 
-# ===== KAGGLE (apenas normalizada) =====
 score_kmeans_kaggle_scaled        = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_kmeans)
 score_bkm_kaggle_scaled           = silhouette_score(kaggle_scaled, kaggle_clusters_bkm_scaled)
 score_hier_kaggle_scaled_ward     = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_ward)
@@ -234,7 +224,6 @@ score_hier_kaggle_scaled_single   = silhouette_score(kaggle_scaled, kaggle_scale
 score_hier_kaggle_scaled_complete = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_complete)
 score_hier_kaggle_scaled_average  = silhouette_score(kaggle_scaled, kaggle_scaled_clusters_hier_average)
 
-# ===== KAGGLE (normalizada + PowerTransformer) =====
 score_kmeans_kaggle_transf        = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_kmeans)
 score_bkm_kaggle_transf           = silhouette_score(kaggle_transformed, kaggle_clusters_bkm_transf)
 score_hier_kaggle_transf_ward     = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_ward)
@@ -242,12 +231,7 @@ score_hier_kaggle_transf_single   = silhouette_score(kaggle_transformed, kaggle_
 score_hier_kaggle_transf_complete = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_complete)
 score_hier_kaggle_transf_average  = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_average)
 
-# --------------------------------------------------------
-# PRINT DOS RESULTADOS
-# --------------------------------------------------------
-
 print("\n===== COMPARATIVO SILHOUETTE SCORE =====\n")
-
 print("📌 Base IRIS (apenas normalizada):")
 print(f"  • K-Means:                {score_kmeans_iris:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_iris:.4f}")
@@ -271,7 +255,6 @@ print(f"  • Hierárquico (Ward):     {score_hier_kaggle_transf_ward:.4f}")
 print(f"  • Hierárquico (Single):   {score_hier_kaggle_transf_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_kaggle_transf_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_kaggle_transf_average:.4f}")
-
 
 # --------------------------------------------------------
 # RELATÓRIO FINAL (DETALHES, ESCOLHAS E JUSTIFICATIVAS)
@@ -340,15 +323,20 @@ CONCLUSÃO E ANÁLISE:
 - Testamos os métodos K-Means, Bisecting K-Means e Hierarchical (Ward, Single, Complete, Average) em duas bases de dados. 
   A escolha do melhor resultado foi feita com base na análise visual dos pairplots e também nos valores do Silhouette Score.
   Os melhores resultados foram:
-    - IRIS (normalizada): Hierarchical - Complete, pois obteve o maior Silhouette Score (0.4106) e os clusters ficaram visualmente 
-      bem definidos e coesos.
+    - IRIS (normalizada) USANDO K = 4: - Hierarchical Complete Silhouette Score -> (0.4106) 
+                                       - Visualmente -> Complete, Ward, K-Means ou Bisecting K-Means
 
-    - KAGGLE (apenas normalizada): Hierarchical - Average, pois apresentou excelente Silhouette Score (0.8577) com boa separação visual 
-      entre os grupos, mais estável que o método Single.
+    - KAGGLE (apenas normalizada) USANDO K = 4: - Hierarchical Single Silhouette Score -> (0.8777) Nao sei pq, ficou horrivel o dendograma
+                                                - Visualmente -> Ward, Complete, K-Means ou Bisecting K-Means
 
-    - KAGGLE (normalizada + PowerTransformer): Hierarchical - Average, pois mesmo com scores mais baixos, manteve a melhor performance 
-      relativa após a transformação que reduziu a variabilidade dos dados.
-
+    - KAGGLE (normalizada + PowerTransformer) USANDO K = 4: - Hierarchical Average Silhouette Score ->  (0.3321)
+                                
+                                                            - Visualmente -> Ward, Complete, K-Means ou Bisecting K-Means
+      - Apesar de alguns Silhouette Scores altos, os métodos `Single` e `Average` não tiveram bom desempenho visual.
+      
+    - `Single` tende a formar "cadeias" de pontos, ligando clusters por apenas uma conexão mínima — isso gera agrupamentos alongados e pouco coesos, além de ser sensível a outliers.
+    - `Average`, embora mais estável, também pode formar clusters menos compactos e mais sobrepostos, o que prejudica a clareza dos agrupamentos em dados mais homogêneos (como após o PowerTransformer).
+    - Não sabemos pq silhoutte gosotu de single e average mt bem
 - Observamos a importância da normalização para evitar que variáveis em escalas diferentes dominem o agrupamento. 
   No caso do dataset Kaggle, também aplicamos o PowerTransformer para tratar skewness com intuito de testar. Entretanto, para 
   fins de estudo e por duvida se estava correto, trabalhamos com normalizado e normalizado + transformado A transformação 
