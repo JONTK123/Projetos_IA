@@ -19,18 +19,58 @@ frases = [
 
 # Junta frases em uma unica string e separa as palavras
 palavras = set(" ".join(frases).split())
-# Cria dicionario de palavras para indices, chaves sao as palavras e valores sao os indices
 
-word2id = {w: i for i, w in enumerate(palavras)}
+# Cria dicionario de palavras para indices, chaves sao as palavras e valores sao os indices
+word2id = {w:i for i, w in enumerate(palavras)}
 #ou
 # for i, w in enumerate(palavras):
 #     word2id[w] = i
 
 # Cria dicionario de indices para palavras, chaves sao os indices e valores sao as palavras
-id2word = {i: w for w, i in word2id.items()}
+id2word = {i:w for w, i in word2id.items()}
 # ou
 # for w, i in word2id.items():
 #   id2word[i] = w
+
+# 1. Esse código:
+# word2id = {w: i for i, w in enumerate(palavras)}
+# Faz o seguinte:
+# Cria um dicionário
+# Onde:
+# w é a chave (a palavra)
+# i é o valor (o índice)
+# Ele percorre a lista palavras com enumerate, ou seja, tem acesso tanto ao índice quanto à palavra.
+
+# Esse código:
+# id2word = {i: w for w, i in word2id.items()}
+# Faz o inverso:
+# Cria um novo dicionário
+# Onde:
+# i é a chave (o índice)
+# w é o valor (a palavra)
+# Ele percorre o dicionário word2id, usando .items() — que dá acesso a pares (chave, valor) → (w, i)
+
+# Usamos enumerate para ter acesso ao index e seu conteudo do array de strings
+# Exemplo array = ["oi", "queijo"] [1,2] -> i=1 -> "oi" e i=2 -> "queijo"
+# Podemos tb fazer um for:
+# for i in range(len(palavras)):
+#     print(i, palavras[i])
+
+# e isso é equivalente a:
+
+# for (int i = 0; i < palavras.length; i++) {
+#     System.out.println("Índice: " + i + " Palavra: " + palavras[i]);
+# }
+
+# em java
+
+# Para iterar somente sobre o resultado podemos fazer, em python:
+# for palavra in palavras:
+#     print(palavra)
+
+# e se quiser em java:
+# for (String palavra: palavras) {
+#     System.out.println(palavra);
 
 print(f"Palavras: {palavras}")
 print(f"Word2ID: {word2id}")

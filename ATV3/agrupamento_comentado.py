@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
@@ -338,10 +337,26 @@ RELATÓRIO FINAL (VERSÃO ATUALIZADA):
 
 CONCLUSÃO E ANÁLISE:
 
-- Testamos K-Means, Bisecting K-Means e Hierarchical (Ward, Single, Complete, Average) em duas bases.
-- Observamos a importância da normalização e, no caso da Kaggle, também de transformar dados assimétricos (PowerTransformer).
-- O Elbow Method auxiliou na escolha de K para cada base.
-- O Silhouette Score confirmou que Ward e K-Means/BKM costumam ter melhores resultados em dados normalizados e transformados.
-- Bisecting K-Means se mostrou uma alternativa interessante, combinando velocidade e bons resultados.
+- Testamos os métodos K-Means, Bisecting K-Means e Hierarchical (Ward, Single, Complete, Average) em duas bases de dados. 
+  A escolha do melhor resultado foi feita com base na análise visual dos pairplots e também nos valores do Silhouette Score.
+  Os melhores resultados foram:
+    - IRIS (normalizada): Hierarchical - Complete, pois obteve o maior Silhouette Score (0.4106) e os clusters ficaram visualmente 
+      bem definidos e coesos.
 
+    - KAGGLE (apenas normalizada): Hierarchical - Average, pois apresentou excelente Silhouette Score (0.8577) com boa separação visual 
+      entre os grupos, mais estável que o método Single.
+
+    - KAGGLE (normalizada + PowerTransformer): Hierarchical - Average, pois mesmo com scores mais baixos, manteve a melhor performance 
+      relativa após a transformação que reduziu a variabilidade dos dados.
+
+- Observamos a importância da normalização para evitar que variáveis em escalas diferentes dominem o agrupamento. 
+  No caso do dataset Kaggle, também aplicamos o PowerTransformer para tratar skewness com intuito de testar. Entretanto, para 
+  fins de estudo e por duvida se estava correto, trabalhamos com normalizado e normalizado + transformado A transformação 
+  tornou os dados mais Gaussianos e facilitou a visualização, mas acabou prejudicando o agrupamento, pois deixou as 
+  distâncias muito homogêneas e próximas da média, o que exige um valor de K diferente para melhor separação.
+
+- O Elbow Method foi usado para sugerir K para cada base. Mantivemos o mesmo valor de K entre os métodos por simplicidade e 
+  para permitir comparações sob as mesmas condições. No entanto, para os dados transformados, o K=4 se mostrou inadequado, 
+  pois os dados ficaram mais uniformes e menos distintos. Possivelmente, um K menor (como 2 ou 3) seria mais 
+  apropriado para representar os agrupamentos reais nesse cenário.
 '''

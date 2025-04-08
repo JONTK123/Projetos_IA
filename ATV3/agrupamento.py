@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
@@ -89,24 +88,6 @@ kaggle_clusters_bkm_scaled = bisecting_kmeans_kaggle_scaled.fit_predict(kaggle_s
 bisecting_kmeans_kaggle_transf = BisectingKMeans(n_clusters=k_kaggle, random_state=42)
 kaggle_clusters_bkm_transf = bisecting_kmeans_kaggle_transf.fit_predict(kaggle_transformed)
 
-def plot_bkm_iris(data_scaled, labels, title="Bisecting K-Means - Iris"):
-    df = pd.DataFrame(data_scaled, columns=["feat1", "feat2", "feat3", "feat4"])
-    df['cluster'] = labels.astype(str)
-    sns.pairplot(df, hue='cluster')
-    plt.suptitle(title, y=1.02)
-    plt.show()
-
-def plot_bkm_kaggle(data_scaled, labels, title="Bisecting K-Means - Kaggle"):
-    df = pd.DataFrame(data_scaled, columns=["budget", "popularity", "revenue", "vote_average", "vote_count"])
-    df['cluster'] = labels.astype(str)
-    sns.pairplot(df, hue='cluster')
-    plt.suptitle(title, y=1.02)
-    plt.show()
-
-plot_bkm_iris(iris_scaled, iris_clusters_bkm, "Bisecting K-Means - Iris")
-plot_bkm_kaggle(kaggle_scaled, kaggle_clusters_bkm_scaled, "Bisecting K-Means - Kaggle (Normalizado)")
-plot_bkm_kaggle(kaggle_transformed, kaggle_clusters_bkm_transf, "Bisecting K-Means - Kaggle (Transformado)")
-
 def hierarchical_clustering(data, title, k, method):
     linked = linkage(data, method=method)
     plt.figure(figsize=(10, 5))
@@ -163,6 +144,7 @@ print(f"  • Hierárquico (Ward):     {score_hier_iris_ward:.4f}")
 print(f"  • Hierárquico (Single):   {score_hier_iris_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_iris_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_iris_average:.4f}\n")
+
 print("📌 Base KAGGLE (apenas normalizada):")
 print(f"  • K-Means:                {score_kmeans_kaggle_scaled:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_kaggle_scaled:.4f}")
@@ -170,10 +152,12 @@ print(f"  • Hierárquico (Ward):     {score_hier_kaggle_scaled_ward:.4f}")
 print(f"  • Hierárquico (Single):   {score_hier_kaggle_scaled_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_kaggle_scaled_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_kaggle_scaled_average:.4f}\n")
+
 print("📌 Base KAGGLE (StandardScaler + PowerTransformer):")
 print(f"  • K-Means:                {score_kmeans_kaggle_transf:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_kaggle_transf:.4f}")
 print(f"  • Hierárquico (Ward):     {score_hier_kaggle_transf_ward:.4f}")
 print(f"  • Hierárquico (Single):   {score_hier_kaggle_transf_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_kaggle_transf_complete:.4f}")
-print(f"  • Hierárquico (Average):  {score_hier_kaggle_transf_average:.4f}")
+print(f"  • Hierárquico (Average):  {score_hier_kaggle_transf_average:.4f}\n")
+
