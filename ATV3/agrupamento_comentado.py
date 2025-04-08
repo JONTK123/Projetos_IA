@@ -337,6 +337,7 @@ CONCLUSÃO E ANÁLISE:
     - `Single` tende a formar "cadeias" de pontos, ligando clusters por apenas uma conexão mínima — isso gera agrupamentos alongados e pouco coesos, além de ser sensível a outliers.
     - `Average`, embora mais estável, também pode formar clusters menos compactos e mais sobrepostos, o que prejudica a clareza dos agrupamentos em dados mais homogêneos (como após o PowerTransformer).
     - Não sabemos pq silhoutte gosotu de single e average mt bem
+    
 - Observamos a importância da normalização para evitar que variáveis em escalas diferentes dominem o agrupamento. 
   No caso do dataset Kaggle, também aplicamos o PowerTransformer para tratar skewness com intuito de testar. Entretanto, para 
   fins de estudo e por duvida se estava correto, trabalhamos com normalizado e normalizado + transformado A transformação 
