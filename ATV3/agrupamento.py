@@ -91,7 +91,10 @@ kaggle_clusters_bkm_transf = bisecting_kmeans_kaggle_transf.fit_predict(kaggle_t
 def hierarchical_clustering(data, title, k, method):
     linked = linkage(data, method=method)
     plt.figure(figsize=(10, 5))
-    dendrogram(linked, truncate_mode='lastp', p=50, show_leaf_counts=True, leaf_rotation=90, leaf_font_size=10, show_contracted=True)
+    if "Iris" in title:
+        dendrogram(linked, show_leaf_counts=True, leaf_rotation=90, leaf_font_size=10, color_threshold=linked[-(k - 1), 2])
+    else:
+        dendrogram(linked, truncate_mode='lastp', p=50, show_leaf_counts=True, leaf_rotation=90, leaf_font_size=10, show_contracted=True, color_threshold=linked[-(k - 1), 2])
     plt.title(f"Dendrograma Resumido ({method}) - {title}")
     plt.xlabel('Clusters')
     plt.ylabel('Distância')
@@ -137,7 +140,7 @@ score_hier_kaggle_transf_complete = silhouette_score(kaggle_transformed, kaggle_
 score_hier_kaggle_transf_average = silhouette_score(kaggle_transformed, kaggle_transformed_clusters_hier_average)
 
 print("\n===== COMPARATIVO SILHOUETTE SCORE =====\n")
-print("📌 Base IRIS (apenas normalizada):")
+print("\ud83d\udccc Base IRIS (apenas normalizada):")
 print(f"  • K-Means:                {score_kmeans_iris:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_iris:.4f}")
 print(f"  • Hierárquico (Ward):     {score_hier_iris_ward:.4f}")
@@ -145,7 +148,7 @@ print(f"  • Hierárquico (Single):   {score_hier_iris_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_iris_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_iris_average:.4f}\n")
 
-print("📌 Base KAGGLE (apenas normalizada):")
+print("\ud83d\udccc Base KAGGLE (apenas normalizada):")
 print(f"  • K-Means:                {score_kmeans_kaggle_scaled:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_kaggle_scaled:.4f}")
 print(f"  • Hierárquico (Ward):     {score_hier_kaggle_scaled_ward:.4f}")
@@ -153,11 +156,10 @@ print(f"  • Hierárquico (Single):   {score_hier_kaggle_scaled_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_kaggle_scaled_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_kaggle_scaled_average:.4f}\n")
 
-print("📌 Base KAGGLE (StandardScaler + PowerTransformer):")
+print("\ud83d\udccc Base KAGGLE (StandardScaler + PowerTransformer):")
 print(f"  • K-Means:                {score_kmeans_kaggle_transf:.4f}")
 print(f"  • Bisecting K-Means:      {score_bkm_kaggle_transf:.4f}")
 print(f"  • Hierárquico (Ward):     {score_hier_kaggle_transf_ward:.4f}")
 print(f"  • Hierárquico (Single):   {score_hier_kaggle_transf_single:.4f}")
 print(f"  • Hierárquico (Complete): {score_hier_kaggle_transf_complete:.4f}")
 print(f"  • Hierárquico (Average):  {score_hier_kaggle_transf_average:.4f}\n")
-
