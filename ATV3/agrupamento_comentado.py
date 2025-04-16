@@ -9,6 +9,9 @@ from sklearn.datasets import load_iris
 import kagglehub
 import sys
 
+# USAR SILHOUTTE PARA CONFIRMAR SUAS ESCOLHAS
+# OBJETIVO NAO ERA MOSTRAR TODAS POSSIBILIDADES, MAS SIM MOSTRAR AS POSSIBILDIADES ESPECIFICAS
+
 # Aumentando a recursão para dendrogramas grandes
 sys.setrecursionlimit(10000)
 
