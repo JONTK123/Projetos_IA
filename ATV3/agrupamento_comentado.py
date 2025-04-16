@@ -313,26 +313,31 @@ K-Means: Silhouette Score para K = 3: 0.5528
 K-Means: Silhouette Score para K = 4: 0.4981
 K-Means: Silhouette Score para K = 5: 0.4912
 K-Means: Silhouette Score para K = 6: 0.3648
+
 Bisecting K-Means: Silhouette Score para K = 2: 0.6810
 Bisecting K-Means: Silhouette Score para K = 3: 0.5417
 Bisecting K-Means: Silhouette Score para K = 4: 0.4597
 Bisecting K-Means: Silhouette Score para K = 5: 0.3317
 Bisecting K-Means: Silhouette Score para K = 6: 0.3351
+
 Hierarchical (ward): Silhouette Score para K = 2: 0.6867
 Hierarchical (ward): Silhouette Score para K = 3: 0.5543
 Hierarchical (ward): Silhouette Score para K = 4: 0.4890
 Hierarchical (ward): Silhouette Score para K = 5: 0.4844
 Hierarchical (ward): Silhouette Score para K = 6: 0.3592
+
 Hierarchical (single): Silhouette Score para K = 2: 0.6867
 Hierarchical (single): Silhouette Score para K = 3: 0.5121
 Hierarchical (single): Silhouette Score para K = 4: 0.2819
 Hierarchical (single): Silhouette Score para K = 5: 0.2838
 Hierarchical (single): Silhouette Score para K = 6: 0.2214
+
 Hierarchical (complete): Silhouette Score para K = 2: 0.5160
 Hierarchical (complete): Silhouette Score para K = 3: 0.5136
 Hierarchical (complete): Silhouette Score para K = 4: 0.4998
 Hierarchical (complete): Silhouette Score para K = 5: 0.3462
 Hierarchical (complete): Silhouette Score para K = 6: 0.3382
+
 Hierarchical (average): Silhouette Score para K = 2: 0.6867
 Hierarchical (average): Silhouette Score para K = 3: 0.5542
 Hierarchical (average): Silhouette Score para K = 4: 0.4720
@@ -345,26 +350,31 @@ K-Means: Silhouette Score para K = 3: 0.3950
 K-Means: Silhouette Score para K = 4: 0.3437
 K-Means: Silhouette Score para K = 5: 0.3478
 K-Means: Silhouette Score para K = 6: 0.3246
+
 Bisecting K-Means: Silhouette Score para K = 2: 0.6336
 Bisecting K-Means: Silhouette Score para K = 3: 0.2880
 Bisecting K-Means: Silhouette Score para K = 4: 0.2929
 Bisecting K-Means: Silhouette Score para K = 5: 0.2974
 Bisecting K-Means: Silhouette Score para K = 6: 0.2971
+
 Hierarchical (ward): Silhouette Score para K = 2: 0.7263
 Hierarchical (ward): Silhouette Score para K = 3: 0.3064
 Hierarchical (ward): Silhouette Score para K = 4: 0.2324
 Hierarchical (ward): Silhouette Score para K = 5: 0.2517
 Hierarchical (ward): Silhouette Score para K = 6: 0.2542
+
 Hierarchical (single): Silhouette Score para K = 2: 0.9141
 Hierarchical (single): Silhouette Score para K = 3: 0.9006
 Hierarchical (single): Silhouette Score para K = 4: 0.8777
 Hierarchical (single): Silhouette Score para K = 5: 0.8575
 Hierarchical (single): Silhouette Score para K = 6: 0.8556
+
 Hierarchical (complete): Silhouette Score para K = 2: 0.8807
 Hierarchical (complete): Silhouette Score para K = 3: 0.8454
 Hierarchical (complete): Silhouette Score para K = 4: 0.6804
 Hierarchical (complete): Silhouette Score para K = 5: 0.6803
 Hierarchical (complete): Silhouette Score para K = 6: 0.6372
+
 Hierarchical (average): Silhouette Score para K = 2: 0.8807
 Hierarchical (average): Silhouette Score para K = 3: 0.8780
 Hierarchical (average): Silhouette Score para K = 4: 0.8577
@@ -377,43 +387,41 @@ K-Means: Silhouette Score para K = 3: 0.3097
 K-Means: Silhouette Score para K = 4: 0.2828
 K-Means: Silhouette Score para K = 5: 0.2856
 K-Means: Silhouette Score para K = 6: 0.2687
+
 Bisecting K-Means: Silhouette Score para K = 2: 0.4364
 Bisecting K-Means: Silhouette Score para K = 3: 0.2895
 Bisecting K-Means: Silhouette Score para K = 4: 0.2368
 Bisecting K-Means: Silhouette Score para K = 5: 0.2273
 Bisecting K-Means: Silhouette Score para K = 6: 0.2367
+
 Hierarchical (ward): Silhouette Score para K = 2: 0.3727
 Hierarchical (ward): Silhouette Score para K = 3: 0.2898
 Hierarchical (ward): Silhouette Score para K = 4: 0.2478
 Hierarchical (ward): Silhouette Score para K = 5: 0.2376
 Hierarchical (ward): Silhouette Score para K = 6: 0.2062
+
 Hierarchical (single): Silhouette Score para K = 2: 0.5541
 Hierarchical (single): Silhouette Score para K = 3: 0.2193
 Hierarchical (single): Silhouette Score para K = 4: 0.0625
 Hierarchical (single): Silhouette Score para K = 5: 0.0344
 Hierarchical (single): Silhouette Score para K = 6: -0.0091
+
 Hierarchical (complete): Silhouette Score para K = 2: 0.5541
 Hierarchical (complete): Silhouette Score para K = 3: 0.4118
 Hierarchical (complete): Silhouette Score para K = 4: 0.2275
 Hierarchical (complete): Silhouette Score para K = 5: 0.2122
 Hierarchical (complete): Silhouette Score para K = 6: 0.1844
+
 Hierarchical (average): Silhouette Score para K = 2: 0.5541
 Hierarchical (average): Silhouette Score para K = 3: 0.4131
 Hierarchical (average): Silhouette Score para K = 4: 0.3321
 Hierarchical (average): Silhouette Score para K = 5: 0.2515
 Hierarchical (average): Silhouette Score para K = 6: 0.2243
 
-
-
-
 - Observamos a importância da normalização para evitar que variáveis em escalas diferentes dominem o agrupamento. 
   No caso do dataset Kaggle, também aplicamos o PowerTransformer para tratar skewness com intuito de testar. Entretanto, para 
-  fins de estudo e por duvida se estava correto, trabalhamos com normalizado e normalizado + transformado A transformação 
-  tornou os dados mais Gaussianos e facilitou a visualização, mas acabou prejudicando o agrupamento, pois deixou as 
-  distâncias muito homogêneas e próximas da média, o que exige um valor de K diferente para melhor separação.
+  fins de estudo e por duvida se estava correto, trabalhamos com normalizado e normalizado + transformado.
 
-- O Elbow Method foi usado para sugerir K para cada base. Mantivemos o mesmo valor de K entre os métodos por simplicidade e 
-  para permitir comparações sob as mesmas condições. No entanto, para os dados transformados, o K=4 se mostrou inadequado, 
-  pois os dados ficaram mais uniformes e menos distintos. Possivelmente, um K menor (como 2 ou 3) seria mais 
-  apropriado para representar os agrupamentos reais nesse cenário.
+- A transformação tornou os dados mais Gaussianos e facilitou a visualização, mas acabou prejudicando o agrupamento, pois deixou as 
+  distâncias muito homogêneas e próximas da média, o que exige um valor de K diferente para melhor separação.
 '''
