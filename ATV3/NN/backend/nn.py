@@ -1,9 +1,21 @@
-import pathlib
-import tempfile
-import threading
+# ==============================================================#
+#  Mini-NN API
+#  --------------------------------------------------------------#
+#  • Treina uma mini-rede neural (prevê o próximo token)         #
+#  • Faz streaming das métricas por WebSocket                    #
+#  • Gera PNGs e os serve em /static/…                           #
+# ==============================================================#
+
+# ------------------------------#
+#  Imports
+# ------------------------------#
 import json
+import pathlib
+import shutil
+import tempfile
+from collections import Counter
 from datetime import datetime as dt
-from collections import defaultdict
+
 import anyio
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,329 +23,240 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sklearn.metrics import (
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+)
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 
-# --------------------  HISTÓRICO AO VIVO  --------------------
-historico_buffer: list[dict] = []        # acumula cada passo
+# ------------------------------#
+#  Constantes
+# ------------------------------#
+EPOCHS       = 50
+BATCH_SIZE   = 1
+LR           = 0.01
+DELTA_TOPK   = 10             # quantos pesos delta serão enviados
+STATIC_DIR   = pathlib.Path("static_outputs")
+STATIC_DIR.mkdir(exist_ok=True)
+ENVIAR_TOPK = True
+# ENVIAR_TOPK = False
 
-
-def treinar_rede(frases: list[str], out_dir: pathlib.Path):
-    """Treina a mini-rede com o conjunto 'frases' fornecido e grava todos os gráficos em PNG dentro de out_dir."""
-
-    palavras = set(" ".join(frases).split())
-    word2id = {w: i for i, w in enumerate(palavras)}
-    id2word = {i: w for w, i in word2id.items()}
-
-    print(f"Palavras: {palavras}")
-    print(f"Word2ID: {word2id}")
-    print(f"ID2Word: {id2word}\n")
-
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-
-    for frase in frases:
-        tokens = tokenizer.tokenize(frase)
-        token_ids = tokenizer.convert_tokens_to_ids(tokens)
-        tokens = tokenizer.convert_ids_to_tokens(token_ids)
-        frase_tokenizada = tokenizer.decode(token_ids)
-        print(f"Frase: {frase}")
-        print(f"Tokens: {tokens}")
-        print(f"Token IDs: {token_ids}")
-        print(f"Frase tokenizada: {frase_tokenizada}\n")
-
-    treino = []
-    for frase in frases:
-        palavras_frase = frase.split()
-        for i in range(1, len(palavras_frase)):
-            entrada = palavras_frase[:i]
-            saida = palavras_frase[i]
-            entrada_ids = [word2id[w] for w in entrada]
-            saida_id = word2id[saida]
-            treino.append((entrada_ids, saida_id))
-
-    print(f"Treino: {treino}")
-
-    treino2 = []
-    for frase in frases:
-        token_ids = tokenizer.encode(frase, add_special_tokens=False)
-        for i in range(1, len(token_ids)):
-            entrada_ids = token_ids[:i]
-            saida_id = token_ids[i]
-            treino2.append((entrada_ids, saida_id))
-
-    print(f"Treino: {treino2}")
-
-    class ChatDataset(Dataset):
-        def __init__(self, dados):
-            self.dados = dados
-
-        def __len__(self):
-            return len(self.dados)
-
-        def __getitem__(self, idx):
-            entrada, saida = self.dados[idx]
-            return {
-                "input_ids": torch.tensor(entrada, dtype=torch.long),
-                "label": torch.tensor(saida, dtype=torch.long),
-            }
-
-    class MiniGPT(nn.Module):
-        def __init__(self, vocab_size, embed_dim=32, hidden_dim=64):
-            super().__init__()
-            self.embed = nn.Embedding(vocab_size, embed_dim)
-            self.ff1 = nn.Linear(embed_dim, hidden_dim)
-            self.out = nn.Linear(hidden_dim, vocab_size)
-
-        def forward(self, input_ids):
-            emb = self.embed(input_ids)
-            x = emb.mean(dim=1)
-            x = F.relu(self.ff1(x))
-            logits = self.out(x)
-            return logits
-
-    def gerar_proxima_palavra(frase):
-        modelo.eval()
-        input_ids = tokenizer.encode(frase, return_tensors="pt", add_special_tokens=False)
-        with torch.no_grad():
-            logits = modelo(input_ids)
-            predicted_id = torch.argmax(logits, dim=1).item()
-        predicted_token = tokenizer.decode([predicted_id])
-        print(f"Frase: '{frase}' → Próxima palavra prevista: '{predicted_token}'")
-
-    dataset2 = ChatDataset(treino2)
-    loader = DataLoader(dataset2, batch_size=1, shuffle=True)
-    vocab_size = tokenizer.vocab_size
-    modelo = MiniGPT(vocab_size)
-
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(modelo.parameters(), lr=0.01)
-
-    historico_perda = []
-    historico_acuracia = []
-    historico_perplexidade = []
-    matriz_perda_batches = []
-    pesos_iniciais = []
-    pesos_finais = []
-
-    with torch.no_grad():
-        pesos_iniciais = torch.cat([p.flatten() for p in modelo.parameters()]).clone()
-
-    for epoca in range(50):
-        total_loss = 0.0
-        total_acertos = 0
-        perdas_batch = []
-
-        for step, batch in enumerate(loader, start=1):
-            input_ids = batch["input_ids"]
-            label = batch["label"]
-
-            logits = modelo(input_ids)
-            loss = loss_fn(logits, label)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            total_loss += loss.item()
-            pred = torch.argmax(logits, dim=1)
-            acertos = (pred == label).sum().item()
-            total_acertos += acertos
-            perdas_batch.append(loss.item())
-
-            _broadcast_progress(
-                {
-                    "epoca": epoca,
-                    "batch": step,
-                    "loss": loss.item(),
-                    "weights": modelo.embed.weight.flatten()[:200].tolist(),
-                }
-            )
-
-        historico_perda.append(total_loss)
-        matriz_perda_batches.append(perdas_batch)
-
-        if epoca % 10 == 0:
-            print(f"Época {epoca} - Perda acumulada: {total_loss:.4f}")
-
-
-        acuracia = total_acertos / len(loader)
-        historico_acuracia.append(acuracia)
-        historico_perplexidade.append(np.exp(total_loss / len(loader)))
-
-    with torch.no_grad():
-        pesos_finais = torch.cat([p.flatten() for p in modelo.parameters()]).clone()
-
-    plt.figure()
-    plt.plot(historico_perda)
-    plt.xlabel("Época")
-    plt.ylabel("Perda acumulada")
-    plt.title("Evolução da perda durante o treino")
-    plt.grid(True)
-    plt.savefig(out_dir / "grafico_curva.png")
-    plt.close()
-
-    plt.figure()
-    plt.plot(historico_acuracia)
-    plt.xlabel("Época")
-    plt.ylabel("Acurácia")
-    plt.title("Acurácia por época")
-    plt.grid(True)
-    plt.savefig(out_dir / "grafico_acuracia.png")
-    plt.close()
-
-    plt.figure()
-    plt.plot(historico_perplexidade)
-    plt.xlabel("Época")
-    plt.ylabel("Perplexidade")
-    plt.title("Perplexidade por época")
-    plt.grid(True)
-    plt.savefig(out_dir / "grafico_perplexidade.png")
-    plt.close()
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-
-    max_batches = max(len(l) for l in matriz_perda_batches)
-    X, Y = np.meshgrid(
-        np.arange(len(matriz_perda_batches)),
-        np.arange(max_batches),
-    )
-    Z = np.zeros_like(X, dtype=float)
-
-    for e, losses in enumerate(matriz_perda_batches):
-        Z[: len(losses), e] = losses
-
-    ax.plot_surface(X, Y, Z, cmap="viridis")
-    ax.set_xlabel("Época")
-    ax.set_ylabel("Batch")
-    ax.set_zlabel("Loss")
-    ax.set_title("Loss por batch ao longo das épocas")
-    plt.savefig(out_dir / "grafico_mapa3d.png")
-    plt.close()
-
-    n_pts = 30
-    alphas = torch.linspace(0, 1, n_pts)
-    loss_interp = []
-    original_state = modelo.state_dict()
-
-    with torch.no_grad():
-        for a in alphas:
-            vetor_interpolado = pesos_iniciais + a * (pesos_finais - pesos_iniciais)
-            offset = 0
-            for p in modelo.parameters():
-                numel = p.numel()
-                p.copy_(vetor_interpolado[offset : offset + numel].view_as(p))
-                offset += numel
-            total = 0.0
-            for batch in loader:
-                logits = modelo(batch["input_ids"])
-                total += loss_fn(logits, batch["label"]).item()
-            loss_interp.append(total)
-
-    modelo.load_state_dict(original_state)
-
-    plt.figure()
-    plt.plot(alphas.numpy(), loss_interp)
-    plt.xlabel("α (0 = início | 1 = fim)")
-    plt.ylabel("Perda")
-    plt.title("Curva 1-D da perda ao longo da linha de interpolação dos pesos")
-    plt.grid(True)
-    plt.savefig(out_dir / "grafico_interpol.png")
-    plt.close()
-
-    d1 = (pesos_finais - pesos_iniciais)
-    d1 = d1 / d1.norm()
-    rand_vec = torch.randn_like(d1)
-    d2 = rand_vec - (rand_vec @ d1) * d1
-    d2 = d2 / d2.norm()
-
-    grid = torch.linspace(-1, 1, 25)
-    loss_surface = np.zeros((len(grid), len(grid)))
-
-    with torch.no_grad():
-        for i, a in enumerate(grid):
-            for j, b in enumerate(grid):
-                w = pesos_finais + a * d1 + b * d2
-                offset = 0
-                for p in modelo.parameters():
-                    numel = p.numel()
-                    p.copy_(w[offset : offset + numel].view_as(p))
-                    offset += numel
-                total = 0.0
-                for batch in loader:
-                    logits = modelo(batch["input_ids"])
-                    total += loss_fn(logits, batch["label"]).item()
-                loss_surface[i, j] = total
-
-    modelo.load_state_dict(original_state)
-
-    Xg, Yg = np.meshgrid(grid.numpy(), grid.numpy())
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    ax.plot_surface(Xg, Yg, loss_surface, cmap="coolwarm", linewidth=0)
-    ax.set_xlabel("Direção d1")
-    ax.set_ylabel("Direção d2")
-    ax.set_zlabel("Perda")
-    ax.set_title("Superfície 3-D da Loss")
-    plt.savefig(out_dir / "grafico_surface.png")
-    plt.close()
-
-    for frase_base in frases[-3:]:
-        gerar_proxima_palavra(frase_base)
-
-    progresso = {
-        "epoca": epoca,
-        "batch": step,
-        "loss": loss.item(),
-        # limite se quiser ↓  ou use todos
-        "weights": modelo.embed.weight.flatten()[:200].tolist(),
-    }
-    historico_buffer.append(progresso)
-    _broadcast_progress(progresso)
-
-    hist_path = out_dir / "historico_treino.json"
-    with open(hist_path, "w") as f:
-        json.dump(historico_buffer, f, indent=2)
-
-    return {
-        "loss_final": historico_perda[-1],
-        "pngs": {
-            "surface_3d": str(out_dir / "grafico_surface.png"),
-            "interpol": str(out_dir / "grafico_interpol.png"),  # nome real
-            "mapa3d": str(out_dir / "grafico_mapa3d.png"),
-            "acuracia": str(out_dir / "grafico_acuracia.png"),
-            "perplexidade": str(out_dir / "grafico_perplexidade.png"),
-        },
-    "hist_json": str(hist_path),          #  ← nova chave
-
-    }
-
-
-app = FastAPI(title="Mini NN API")
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
-)
-
+# ------------------------------#
+#  Estado do servidor
+# ------------------------------#
 estado = {"treinando": False, "loss_final": None, "pngs": {}}
 subscribers: set[WebSocket] = set()
 
+# ==============================================================#
+#  Função de Treinamento
+# ==============================================================#
+def treinar_rede(frases: list[str], out_dir: pathlib.Path) -> dict:
+    """Treina a mini-rede e grava métricas/gráficos no diretório out_dir."""
+    # --- Tokenização e pares (entrada → saída) ---
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    treino_pairs = [
+        (ids[:i], ids[i])
+        for frase in frases
+        for ids in [tokenizer.encode(frase, add_special_tokens=False)]
+        for i in range(1, len(ids))
+    ]
 
-@app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket):
-    await ws.accept()
-    subscribers.add(ws)
-    try:
-        while True:
-            await ws.receive_text()
-    except WebSocketDisconnect:
-        subscribers.remove(ws)
+    # --- Dataset / DataLoader ---
+    class ChatDataset(Dataset):
+        def __init__(self, pares): self.pares = pares
+        def __len__(self):         return len(self.pares)
+        def __getitem__(self, i):
+            x, y = self.pares[i]
+            return {"input_ids": torch.tensor(x), "label": torch.tensor(y)}
 
+    loader = DataLoader(ChatDataset(treino_pairs), batch_size=BATCH_SIZE, shuffle=True)
 
+    # --- Modelo simplificado ---
+    class MiniGPT(nn.Module):
+        def __init__(self, vocab, emb=32, hid=64):
+            super().__init__()
+            self.embed = nn.Embedding(vocab, emb)
+            self.ff1   = nn.Linear(emb, hid)
+            self.out   = nn.Linear(hid, vocab)
+
+        def forward(self, ids):
+            x = self.embed(ids).mean(dim=1)
+            return self.out(F.relu(self.ff1(x)))
+
+    model  = MiniGPT(tokenizer.vocab_size)
+    optim  = torch.optim.Adam(model.parameters(), lr=LR)
+    lossfn = nn.CrossEntropyLoss()
+
+    # --- Inicializa pesos anteriores para deltas ---
+    with torch.no_grad():
+        pesos_anteriores = model.embed.weight.flatten().clone()
+
+    # --- Históricos de métricas ---
+    hist_loss, hist_acc, hist_ppl = [], [], []
+    hist_prec, hist_rec, hist_f1  = [], [], []
+    loss_batches: list[list[float]] = []
+    erros_tokens: Counter = Counter()
+
+    logs_epocas = []
+
+    # --- Loop de épocas ---
+    for ep in range(EPOCHS):
+        tot_loss, tot_ok = 0.0, 0
+        batch_losses, y_true, y_pred = [], [], []
+
+        for step, batch in enumerate(loader, 1):
+            ids, label = batch["input_ids"], batch["label"]
+
+            # forward / backward
+            logits = model(ids)
+            loss   = lossfn(logits, label)
+            optim.zero_grad(); loss.backward(); optim.step()
+
+            # métricas de batch
+            tot_loss += loss.item()
+            pred = torch.argmax(logits, 1)
+            tot_ok += (pred == label).sum().item()
+            batch_losses.append(loss.item())
+
+            # coleta para métricas globais
+            y_true.extend(label.tolist())
+            y_pred.extend(pred.tolist())
+            for p, t in zip(pred, label):
+                if p != t:
+                    erros_tokens[int(t)] += 1
+
+            # --- Calcula delta de pesos e envia ao front ---
+            with torch.no_grad():
+                pesos_atuais = model.embed.weight.flatten()
+
+                if ENVIAR_TOPK:
+                    diferencas = (pesos_atuais - pesos_anteriores).abs()
+                    topk = torch.topk(diferencas, k=min(DELTA_TOPK, diferencas.numel()))
+                    pesos_delta = [
+                        (int(i), float(pesos_anteriores[i]), float(pesos_atuais[i]))
+                        for i in topk.indices
+                    ]
+                else:
+                    pesos_delta = [
+                        (i, float(pesos_anteriores[i]), float(pesos_atuais[i]))
+                        for i in range(len(pesos_atuais))
+                        if float(pesos_anteriores[i]) != float(pesos_atuais[i])
+                    ]
+
+                pesos_anteriores = pesos_atuais.clone()
+
+            _broadcast_progress({
+                "epoca":        ep,
+                "batch":        step,
+                "loss":         loss.item(),
+                "weights_delta": pesos_delta
+            })
+
+        # métricas ao fim da época
+        hist_loss.append(tot_loss)
+        hist_acc .append(tot_ok / len(loader))
+        hist_ppl .append(np.exp(tot_loss / len(loader)))
+        loss_batches.append(batch_losses)
+
+        hist_prec.append(precision_score(y_true, y_pred, average="macro", zero_division=0))
+        hist_rec .append(recall_score  (y_true, y_pred, average="macro", zero_division=0))
+        hist_f1  .append(f1_score      (y_true, y_pred, average="macro", zero_division=0))
+
+        if ep % 10 == 0:
+            log_msg = f"[{dt.now():%H:%M:%S}] época {ep} • loss {tot_loss:.4f}"
+            print(log_msg)
+            logs_epocas.append(log_msg)
+
+    # --- Geração de PNGs de todas as métricas ---
+    def save(fig_name: str):
+        plt.savefig(out_dir / fig_name)
+        plt.close()
+
+    # Loss / Acc / PPL por época
+    for serie, title, nome in [
+        (hist_loss, "Loss",          "grafico_loss_epoca.png"),
+        (hist_acc , "Acurácia",      "grafico_acuracia.png"),
+        (hist_ppl , "Perplexidade",  "grafico_perplexidade.png"),
+    ]:
+        plt.figure(); plt.plot(serie)
+        plt.title(f"{title} por época"); plt.xlabel("Época"); plt.grid(True)
+        save(nome)
+
+    # Precision / Recall / F1
+    plt.figure()
+    plt.plot(hist_prec, label="Precision")
+    plt.plot(hist_rec , label="Recall")
+    plt.plot(hist_f1  , label="F1-Score")
+    plt.legend(); plt.grid(True)
+    plt.title("Precision / Recall / F1 por época")
+    save("grafico_prf1.png")
+
+    # Top-10 tokens com mais erros
+    tok, val = zip(*erros_tokens.most_common(10)) if erros_tokens else ([], [])
+    plt.figure(); plt.bar([tokenizer.decode([i]) for i in tok], val)
+    plt.title("Top-10 tokens com mais erros"); plt.xticks(rotation=45); plt.ylabel("Erros")
+    save("grafico_erros.png")
+
+    # Loss por batch em 3D
+    max_b = max(len(l) for l in loss_batches)
+    X, Y  = np.meshgrid(range(EPOCHS), range(max_b))
+    Z     = np.zeros_like(X, dtype=float)
+    for e, lista in enumerate(loss_batches):
+        Z[:len(lista), e] = lista
+    fig = plt.figure(); ax = fig.add_subplot(111, projection="3d")
+    ax.plot_surface(X, Y, Z, cmap="viridis")
+    ax.set_xlabel("Época"); ax.set_ylabel("Batch"); ax.set_zlabel("Loss")
+    save("grafico_mapa3d.png")
+
+    # Matriz de Confusão normalizada
+    cm   = confusion_matrix(y_true, y_pred, normalize="true")
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    fig, ax = plt.subplots(figsize=(8, 8))
+    disp.plot(cmap="viridis", ax=ax, values_format=".2f")
+    plt.title("Matriz de Confusão (normalizada)")
+    plt.xticks(rotation=90)
+    save("grafico_confusao.png")
+
+    # copia todos os PNGs para a pasta estática
+    pngs_dict = {}
+    for img in out_dir.glob("*.png"):
+        dst = STATIC_DIR / img.name
+        shutil.copyfile(img, dst)
+        pngs_dict[img.stem] = f"/static/{dst.name}"
+
+    loss_inicial = hist_loss[0]
+    loss_final = hist_loss[-1]
+
+    return {
+        "loss_inicial": loss_inicial,
+        "loss_final": loss_final,
+        "logs": logs_epocas,
+        "pngs": pngs_dict
+    }
+
+    # ==============================================================#
+#  FastAPI setup
+# ==============================================================#
+app = FastAPI(title="Mini-NN API")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# serve PNGs em /static/…
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# broadcast utilitário
 def _broadcast_progress(payload: dict):
     txt = json.dumps(payload, default=float)
     for ws in set(subscribers):
@@ -342,47 +265,42 @@ def _broadcast_progress(payload: dict):
         except RuntimeError:
             subscribers.discard(ws)
 
+# WebSocket endpoint
+@app.websocket("/ws")
+async def ws_endpoint(ws: WebSocket):
+    await ws.accept()
+    subscribers.add(ws)
+    try:
+        while True:
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        subscribers.discard(ws)
 
+# input schema
 class FrasesInput(BaseModel):
     frases: list[str]
 
-
+# background task
 def _treino_bg(frases: list[str]):
-    tmp_dir = pathlib.Path(tempfile.mkdtemp())
+    tmp = pathlib.Path(tempfile.mkdtemp())
     estado["treinando"] = True
-    resultado = treinar_rede(frases, tmp_dir)
+    resultado = treinar_rede(frases, tmp)
     estado.update(resultado)
     estado["treinando"] = False
     _broadcast_progress({"done": True, **resultado})
 
-
+# rota de início de treino
 @app.post("/treinar")
 def treinar(req: FrasesInput, bg: BackgroundTasks):
-    if estado.get("treinando"):
+    if estado["treinando"]:
         return {"msg": "Já existe treino em andamento."}
     bg.add_task(_treino_bg, req.frases)
     return {"msg": "Treino iniciado!"}
 
-
+# rota de status
 @app.get("/status")
 def status():
     return estado
-
-
-@app.get("/static")
-def static_file(path: str):
-    p = pathlib.Path(path)
-    if not p.exists():
-        raise HTTPException(404, f"Arquivo {p.name} ainda não foi gerado.")
-    return FileResponse(p)
-
-@app.get("/historico")
-def historico(path: str):
-    p = pathlib.Path(path)
-    if not p.exists():
-        raise HTTPException(404, f"Histórico {p.name} não encontrado.")
-    return FileResponse(p, media_type="application/json")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
